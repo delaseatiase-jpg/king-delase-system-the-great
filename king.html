@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>King Delase's Point System</title>
+<style>
+body { font-family: Arial; background: #0d0d0d; color: #fff; text-align: center; }
+h1 { color: gold; }
+.container { max-width: 800px; margin: auto; }
+.player { background: #1a1a1a; margin: 10px; padding: 12px; border-radius: 12px; box-shadow: 0 0 12px rgba(255,215,0,0.2); }
+button { margin: 5px; padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; }
+.add { background: green; color: white; }
+.sub { background: red; color: white; }
+.remove { background: darkred; color: white; }
+.approve { background: gold; color: black; }
+input { padding: 6px; margin: 5px; border-radius: 5px; border: none; }
+.section { margin-top: 20px; padding: 10px; background: #141414; border-radius: 10px; }
+.rank { color: gold; font-weight: bold; }
+.level { color: cyan; }
+</style>
+</head>
+<body>
+
+<h1>👑 King Delase's Final System</h1>
+
+<div class="container">
+
+<div class="section">
+<h3>King Login</h3>
+<input type="password" id="kingPass" placeholder="Password">
+<button onclick="loginKing()">Login</button>
+<p id="loginStatus"></p>
+</div>
+
+<div class="section">
+<h3>Player Login</h3>
+<input type="text" id="playerCode" placeholder="Enter your code">
+<button onclick="loginPlayer()">Login</button>
+<p id="playerStatus"></p>
+</div>
+
+<div class="section" id="addPlayerSection" style="display:none;">
+<h3>Add Player (King)</h3>
+<input type="text" id="nameInput" placeholder="Enter name">
+<input type="text" id="codeInput" placeholder="Set code">
+<button onclick="addPlayer()">Add</button>
+</div>
+
+<div id="players"></div>
+
+<div class="section" id="questionSection" style="display:none;">
+<h3>Daily Question (King)</h3>
+<input type="text" id="questionInput" placeholder="Enter question">
+<button onclick="setQuestion()">Set</button>
+</div>
+
+<div class="section">
+<h3>Daily Question</h3>
+<p id="currentQuestion"></p>
+</div>
+
+<div class="section" id="answerSection" style="display:none;">
+<h3>Submit Answer</h3>
+<input type="text" id="answerText" placeholder="Answer">
+<button onclick="submitAnswer()">Submit</button>
+</div>
+
+<div class="section">
+<h3>Pending Answers</h3>
+<div id="answers"></div>
+</div>
+
+</div>
+
+<script>
+const PASSWORD = "king123";
+let isKing = false;
+let currentUser = null;
+
+let players = JSON.parse(localStorage.getItem("players"));
+
+if(!players){
+ players = [
+  {name:"Kevin",points:5,xp:0,code:"111"},
+  {name:"Nhyiraa",points:5,xp:0,code:"222"},
+  {name:"Elinam",points:5,xp:0,code:"333"},
+  {name:"Stephen",points:5,xp:0,code:"444"}
+ ];
+}
+
+let question = localStorage.getItem("question") || "";
+let answers = JSON.parse(localStorage.getItem("answers")) || [];
+
+function save(){
+ localStorage.setItem("players",JSON.stringify(players));
+ localStorage.setItem("question",question);
+ localStorage.setItem("answers",JSON.stringify(answers));
+}
+
+function loginKing(){
+ if(document.getElementById("kingPass").value===PASSWORD){
+  isKing=true;
+  document.getElementById("loginStatus").innerText="King Mode 👑";
+  document.getElementById("addPlayerSection").style.display="block";
+  document.getElementById("questionSection").style.display="block";
+  render();
+ } else {
+  document.getElementById("loginStatus").innerText="Wrong";
+ }
+}
+
+function loginPlayer(){
+ const code=document.getElementById("playerCode").value.trim();
+ const player=players.find(p=>p.code===code);
+ if(player){
+  currentUser=player;
+  document.getElementById("playerStatus").innerText="Logged in as "+player.name;
+  document.getElementById("answerSection").style.display="block";
+ } else {
+  document.getElementById("playerStatus").innerText="Invalid code";
+ }
+}
+
+function getLevel(xp){
+ if(xp<5) return "Peasant";
+ if(xp<10) return "Knight";
+ if(xp<20) return "Warrior";
+ return "Legend";
+}
+
+function getTitle(points){
+ if(points>=1 && points<=5) return "Toilet Scrubber";
+ if(points>=6 && points<=13) return "Gate Man";
+ if(points>=14 && points<=20) return "Gardener";
+ if(points>=21 && points<=30) return "Servant";
+ if(points>=40 && points<=50) return "Bodyguard";
+ return "Unranked";
+}
+
+function render(){
+ const container=document.getElementById("players");
+ container.innerHTML="";
+ players.sort((a,b)=>b.points-a.points);
+ 
+ players.forEach((p,i)=>{
+  container.innerHTML+=`\n   <div class="player">\n    <div class="rank">#${i+1}</div>\n    <h3>${p.name}</h3>\n    <p>Points: ${p.points}</p>\n    <p class="level">${getLevel(p.xp)}</p>\n    <p>Title: ${getTitle(p.points)}</p>\n    ${isKing?`\n    <button class="add" onclick="changePoints(${i},1)">+1</button>\n    <button class="sub" onclick="changePoints(${i},-1)">-1</button>\n    <button class="remove" onclick="removePlayer(${i})">Remove</button>\n    `:""}\n   </div>`;
+ });
+ 
+ document.getElementById("currentQuestion").innerText=question||"No question set";
+ 
+ const ansDiv=document.getElementById("answers");
+ ansDiv.innerHTML="";
+ answers.forEach((a,i)=>{
+  ansDiv.innerHTML+=`\n   <div class="player">\n    <p><b>${a.name}</b>: ${a.text}</p>\n    ${isKing?`\n    <button class="approve" onclick="approve(${i})">Approve</button>\n    <button class="remove" onclick="reject(${i})">Reject</button>\n    `:"Waiting..."}\n   </div>`;
+ });
+}
+
+function changePoints(i,val){
+ players[i].points+=val;
+ players[i].xp+=Math.abs(val);
+ save(); render();
+}
+
+function addPlayer(){
+ if(!isKing) return;
+ let n=document.getElementById("nameInput").value.trim();
+ let c=document.getElementById("codeInput").value.trim();
+ if(n && c){ players.push({name:n,points:5,xp:0,code:c}); save(); render(); }
+}
+
+function removePlayer(i){ players.splice(i,1); save(); render(); }
+
+function setQuestion(){
+ if(!isKing) return;
+ question=document.getElementById("questionInput").value;
+ save(); render();
+}
+
+function submitAnswer(){
+ if(!currentUser) return alert("Login first");
+ let t=document.getElementById("answerText").value.trim();
+ if(t){ answers.push({name:currentUser.name,text:t}); save(); render(); }
+}
+
+function approve(i){
+ let a=answers[i];
+ let p=players.find(x=>x.name===a.name);
+ if(p){ p.points++; p.xp+=2; }
+ answers.splice(i,1);
+ save(); render();
+}
+
+function reject(i){ answers.splice(i,1); save(); render(); }
+
+render();
+</script>
+
+</body>
+</html>
